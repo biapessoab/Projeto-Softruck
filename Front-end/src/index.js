@@ -4,162 +4,838 @@ const { courses } = data
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcGVzc29hYiIsImEiOiJjbGRuZXR4Z2YwY3VoM3ZvNGpoeW1yZmZnIn0.IUZFAtmrh6HRT_62ziwTIQ';
 
-let origin = [-73.97003, 40.67264];
+const createCarRoute = (route) => ({
+    'type': 'geojson',
+    'data': route
+})
 
-let destination = [-73.97228, 40.67008];
-
-function clicked1() {
-
-    origin = [courses[0].stop_points.coordinates[0][0], courses[0].stop_points.coordinates[0][1]];
-    destination = [courses[0].stop_points.coordinates[courses[0].stops.valueOf() - 1][0], courses[0].stop_points.coordinates[courses[0].stops.valueOf() - 1][1]];
-
-    let map = new mapboxgl.Map({
-        container: 'map',
-        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [origin[0], origin[1]],
-        zoom: 16
-    });
-    // Load an image from an external URL.
-    map.loadImage('car.png', (error, image) => {
-        if (error) throw error;
-        // Add the loaded image to the style's sprite with the ID 'kitten'.
-        map.addImage('pngcar', image);
-    });
-
-    let route = {
+function createRoute(coordinates) {
+    return {
         'type': 'FeatureCollection',
         'features': [
             {
                 'type': 'Feature',
                 'properties': {
-                    'color': 'red'
+                    'color': '#F7455D'
                 },
                 'geometry': {
                     'type': 'LineString',
-                    'coordinates': [
-                        [-73.97003, 40.67264],
-                        [-73.96985, 40.67235],
-                        [-73.96974, 40.67191],
-                        [-73.96972, 40.67175],
-                        [-73.96975, 40.67154],
-                        [-73.96987, 40.67134],
-                        [-73.97015, 40.67117],
-                        [-73.97045, 40.67098],
-                        [-73.97064, 40.67078],
-                        [-73.97091, 40.67038],
-                        [-73.97107, 40.67011],
-                        [-73.97121, 40.66994],
-                        [-73.97149, 40.66969],
-                        [-73.97169, 40.66985],
-                        [-73.97175, 40.66994],
-                        [-73.97191, 40.66998],
-                        [-73.97206, 40.66998],
-                        [-73.97228, 40.67008],
-                        [-73.97003, 40.67264],
-                        [-73.96985, 40.67235],
-                        [-73.96974, 40.67191],
-                        [-73.96972, 40.67175],
-                        [-73.96975, 40.67154],
-                        [-73.96987, 40.67134],
-                        [-73.97015, 40.67117],
-                        [-73.97045, 40.67098],
-                        [-73.97064, 40.67078],
-                        [-73.97091, 40.67038],
-                        [-73.97107, 40.67011],
-                        [-73.97121, 40.66994],
-                        [-73.97149, 40.66969],
-                        [-73.97169, 40.66985],
-                        [-73.97175, 40.66994],
-                        [-73.97191, 40.66998],
-                        [-73.97206, 40.66998],
-                        [-73.97228, 40.67008],
-                        [-73.97003, 40.67264],
-                        [-73.96985, 40.67235],
-                        [-73.96974, 40.67191],
-                        [-73.96972, 40.67175],
-                        [-73.96975, 40.67154],
-                        [-73.96987, 40.67134],
-                        [-73.97015, 40.67117]
-                    ],
+                    coordinates
+                }
+            }
+        ]
+    }
+}
+
+function clicked1() {
+    let selectedCourse = courses[0]
+
+    let {
+        stop_points: {
+            coordinates
+        }
+    } = selectedCourse
+
+    const start = coordinates[0];
+
+    const end = coordinates.at(-1);
+
+    const [startLongitude, startLatitude] = start
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [startLongitude, startLatitude],
+        zoom: 14
+    });
+
+    map.loadImage('../public/car.png', (error, image) => {
+        if (error) throw error;
+        map.addImage('pngcar', image);
+    });
+
+    const point = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [startLongitude, startLatitude]
                 }
             }
         ]
     };
 
-    document.write(`${route[0].features.geometry.coordinates[i][0]} + ${route[0].features.geometry.coordinates[i][1]}`)
+    let courseCoordinates = selectedCourse.gps.map(it => [it.longitude, it.latitude])
+    courseCoordinates.unshift([startLongitude, startLatitude])
+    courseCoordinates.push([end[0], end[1]])
+    console.log(courseCoordinates)
 
-    for (let i = 0; i < courses[0].gps_count; i++) {
-        route.features[1].geometry.coordinates[i][0] = (courses[0].gps[i].longitude)
-        route.features[1].geometry.coordinates[i][1] = (courses[0].gps[i].latitude)
-        document.write(`${route.features[1].geometry.coordinates[i][0]} + ${route.features.geometry.coordinates[i][1]}`)
+    let route = createRoute(courseCoordinates);
+
+    const lineDistance = turf.length(route.features[0]);
+
+    const arc = [];
+
+    // Number of steps to use in the arc and animation, more steps means
+    // a smoother arc and animation, but too many steps will result in a
+    // low frame rate
+    const steps = 500;
+
+    // Draw an arc between the `origin` & `destination` of the two points
+    for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+        const segment = turf.along(route.features[0], i);
+        arc.push(segment.geometry.coordinates);
     }
 
-    // for (let i = 0; i < courses[0].gps_count; i++) {
-    //     document.write(`${route.features[1].geometry.coordinates[i][0]} + ${route.features.geometry.coordinates[i][1]}`)
-    // }
+    // Update the route with calculated arc coordinates
+    route.features[0].geometry.coordinates = arc;
 
-    // document.write(origin)
-    // document.write(destination)
+    let counter = 0;
+    let carRoute = createCarRoute(route)
 
+    map.on('load', () => {
+        map.addSource('route', carRoute)
+
+        map.addSource('point', {
+            'type': 'geojson',
+            'data': point
+        });
+
+        map.addLayer({
+            'id': 'route',
+            'source': 'route',
+            'type': 'line',
+            'paint': {
+                'line-width': 3,
+                'line-color': '#F7455D'
+            }
+        });
+
+        map.addLayer({
+            'id': 'point',
+            'source': 'point',
+            'type': 'symbol',
+            'layout': {
+                // This icon is a part of the Mapbox Streets style.
+                // To view all images available in a Mapbox style, open
+                // the style in Mapbox Studio and click the "Images" tab.
+                // To add a new image to the style at runtime see
+                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
+                'icon-image': 'pngcar',
+                'icon-size': 0.4,
+                'icon-rotate': ['get', 'bearing'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        function animate() {
+            const start =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter - 1 : counter
+                ];
+            const end =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter : counter + 1
+                ];
+            if (!start || !end) return;
+
+            // Update point geometry to a new position based on counter denoting
+            // the index to access the arc
+            point.features[0].geometry.coordinates =
+                route.features[0].geometry.coordinates[counter];
+
+            // Calculate the bearing to ensure the icon is rotated to match the route arc
+            // The bearing is calculated between the current point and the next point, except
+            // at the end of the arc, which uses the previous point and the current point
+            point.features[0].properties.bearing = turf.bearing(
+                turf.point(start),
+                turf.point(end)
+            );
+
+            // Update the source with this new data
+            map.getSource('point').setData(point);
+
+            // Request the next frame of animation as long as the end has not been reached
+            if (counter < steps) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        document.getElementById('replay').addEventListener('click', () => {
+            // Set the coordinates of the original point back to origin
+            point.features[0].geometry.coordinates = courseCoordinates[0];
+
+            // Update the source layer
+            map.getSource('point').setData(point);
+
+            // Reset the counter
+            counter = 0;
+
+            // Restart the animation
+            animate(counter);
+        });
+
+        // Start the animation
+        animate(counter);
+    });
 }
 
 function clicked2() {
+    let selectedCourse = courses[1]
 
-    origin = [courses[1].stop_points.coordinates[0][0], courses[1].stop_points.coordinates[0][1]];
-    destination = [courses[1].stop_points.coordinates[courses[1].stops.valueOf() - 1][0], courses[1].stop_points.coordinates[courses[1].stops.valueOf() - 1][1]];
+    let {
+        stop_points: {
+            coordinates
+        }
+    } = selectedCourse
 
-    document.write(origin)
-    document.write(destination)
+    const start = coordinates[0];
 
-    // for (let i = 0; i < courses[1].gps_count; i++) {
-    //     document.writeln(courses[1].gps[i].longitude + " " + courses[1].gps[i].latitude)
-    //     document.writeln()
-    // }
+    const end = coordinates.at(-1);
+
+    const [startLongitude, startLatitude] = start
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [startLongitude, startLatitude],
+        zoom: 14
+    });
+
+    map.loadImage('../public/car.png', (error, image) => {
+        if (error) throw error;
+        map.addImage('pngcar', image);
+    });
+
+    const point = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [startLongitude, startLatitude]
+                }
+            }
+        ]
+    };
+
+    let courseCoordinates = selectedCourse.gps.map(it => [it.longitude, it.latitude])
+    courseCoordinates.unshift([startLongitude, startLatitude])
+    courseCoordinates.push([end[0], end[1]])
+    console.log(courseCoordinates)
+
+    let route = createRoute(courseCoordinates);
+
+    const lineDistance = turf.length(route.features[0]);
+
+    const arc = [];
+
+    // Number of steps to use in the arc and animation, more steps means
+    // a smoother arc and animation, but too many steps will result in a
+    // low frame rate
+    const steps = 500;
+
+    // Draw an arc between the `origin` & `destination` of the two points
+    for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+        const segment = turf.along(route.features[0], i);
+        arc.push(segment.geometry.coordinates);
+    }
+
+    // Update the route with calculated arc coordinates
+    route.features[0].geometry.coordinates = arc;
+
+    let counter = 0;
+    let carRoute = createCarRoute(route)
+
+    map.on('load', () => {
+        map.addSource('route', carRoute)
+
+        map.addSource('point', {
+            'type': 'geojson',
+            'data': point
+        });
+
+        map.addLayer({
+            'id': 'route',
+            'source': 'route',
+            'type': 'line',
+            'paint': {
+                'line-width': 3,
+                'line-color': '#F7455D'
+            }
+        });
+
+        map.addLayer({
+            'id': 'point',
+            'source': 'point',
+            'type': 'symbol',
+            'layout': {
+                // This icon is a part of the Mapbox Streets style.
+                // To view all images available in a Mapbox style, open
+                // the style in Mapbox Studio and click the "Images" tab.
+                // To add a new image to the style at runtime see
+                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
+                'icon-image': 'pngcar',
+                'icon-size': 0.4,
+                'icon-rotate': ['get', 'bearing'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        function animate() {
+            const start =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter - 1 : counter
+                ];
+            const end =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter : counter + 1
+                ];
+            if (!start || !end) return;
+
+            // Update point geometry to a new position based on counter denoting
+            // the index to access the arc
+            point.features[0].geometry.coordinates =
+                route.features[0].geometry.coordinates[counter];
+
+            // Calculate the bearing to ensure the icon is rotated to match the route arc
+            // The bearing is calculated between the current point and the next point, except
+            // at the end of the arc, which uses the previous point and the current point
+            point.features[0].properties.bearing = turf.bearing(
+                turf.point(start),
+                turf.point(end)
+            );
+
+            // Update the source with this new data
+            map.getSource('point').setData(point);
+
+            // Request the next frame of animation as long as the end has not been reached
+            if (counter < steps) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        document.getElementById('replay').addEventListener('click', () => {
+            // Set the coordinates of the original point back to origin
+            point.features[0].geometry.coordinates = courseCoordinates[0];
+
+            // Update the source layer
+            map.getSource('point').setData(point);
+
+            // Reset the counter
+            counter = 0;
+
+            // Restart the animation
+            animate(counter);
+        });
+
+        // Start the animation
+        animate(counter);
+    });
 }
 
 function clicked3() {
+    let selectedCourse = courses[2]
 
-    origin = [courses[2].stop_points.coordinates[0][0], courses[2].stop_points.coordinates[0][1]];
-    destination = [courses[2].stop_points.coordinates[courses[2].stops.valueOf() - 1][0], courses[2].stop_points.coordinates[courses[2].stops.valueOf() - 1][1]];
+    let {
+        stop_points: {
+            coordinates
+        }
+    } = selectedCourse
 
-    document.write(origin)
-    document.write(destination)
+    const start = coordinates[0];
 
-    // for (let i = 0; i < courses[2].gps_count; i++) {
-    //     document.writeln(courses[2].gps[i].longitude + " " + courses[2].gps[i].latitude)
-    //     document.writeln()
-    // }
+    const end = coordinates.at(-1);
+
+    const [startLongitude, startLatitude] = start
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [startLongitude, startLatitude],
+        zoom: 14
+    });
+
+    map.loadImage('../public/car.png', (error, image) => {
+        if (error) throw error;
+        map.addImage('pngcar', image);
+    });
+
+    const point = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [startLongitude, startLatitude]
+                }
+            }
+        ]
+    };
+
+    let courseCoordinates = selectedCourse.gps.map(it => [it.longitude, it.latitude])
+    courseCoordinates.unshift([startLongitude, startLatitude])
+    courseCoordinates.push([end[0], end[1]])
+    console.log(courseCoordinates)
+
+    let route = createRoute(courseCoordinates);
+
+    const lineDistance = turf.length(route.features[0]);
+
+    const arc = [];
+
+    // Number of steps to use in the arc and animation, more steps means
+    // a smoother arc and animation, but too many steps will result in a
+    // low frame rate
+    const steps = 500;
+
+    // Draw an arc between the `origin` & `destination` of the two points
+    for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+        const segment = turf.along(route.features[0], i);
+        arc.push(segment.geometry.coordinates);
+    }
+
+    // Update the route with calculated arc coordinates
+    route.features[0].geometry.coordinates = arc;
+
+    let counter = 0;
+    let carRoute = createCarRoute(route)
+
+    map.on('load', () => {
+        map.addSource('route', carRoute)
+
+        map.addSource('point', {
+            'type': 'geojson',
+            'data': point
+        });
+
+        map.addLayer({
+            'id': 'route',
+            'source': 'route',
+            'type': 'line',
+            'paint': {
+                'line-width': 3,
+                'line-color': '#F7455D'
+            }
+        });
+
+        map.addLayer({
+            'id': 'point',
+            'source': 'point',
+            'type': 'symbol',
+            'layout': {
+                // This icon is a part of the Mapbox Streets style.
+                // To view all images available in a Mapbox style, open
+                // the style in Mapbox Studio and click the "Images" tab.
+                // To add a new image to the style at runtime see
+                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
+                'icon-image': 'pngcar',
+                'icon-size': 0.4,
+                'icon-rotate': ['get', 'bearing'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        function animate() {
+            const start =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter - 1 : counter
+                ];
+            const end =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter : counter + 1
+                ];
+            if (!start || !end) return;
+
+            // Update point geometry to a new position based on counter denoting
+            // the index to access the arc
+            point.features[0].geometry.coordinates =
+                route.features[0].geometry.coordinates[counter];
+
+            // Calculate the bearing to ensure the icon is rotated to match the route arc
+            // The bearing is calculated between the current point and the next point, except
+            // at the end of the arc, which uses the previous point and the current point
+            point.features[0].properties.bearing = turf.bearing(
+                turf.point(start),
+                turf.point(end)
+            );
+
+            // Update the source with this new data
+            map.getSource('point').setData(point);
+
+            // Request the next frame of animation as long as the end has not been reached
+            if (counter < steps) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        document.getElementById('replay').addEventListener('click', () => {
+            // Set the coordinates of the original point back to origin
+            point.features[0].geometry.coordinates = courseCoordinates[0];
+
+            // Update the source layer
+            map.getSource('point').setData(point);
+
+            // Reset the counter
+            counter = 0;
+
+            // Restart the animation
+            animate(counter);
+        });
+
+        // Start the animation
+        animate(counter);
+    });
 }
 
+
 function clicked4() {
+    let selectedCourse = courses[3]
 
-    origin = [courses[3].stop_points.coordinates[0][0], courses[3].stop_points.coordinates[0][1]];
-    destination = [courses[3].stop_points.coordinates[courses[3].stops.valueOf() - 1][0], courses[3].stop_points.coordinates[courses[3].stops.valueOf() - 1][1]];
+    let {
+        stop_points: {
+            coordinates
+        }
+    } = selectedCourse
 
-    document.write(origin)
-    document.write(destination)
+    const start = coordinates[0];
 
-    // for (let i = 0; i < courses[3].gps_count; i++) {
-    //     document.writeln(courses[3].gps[i].longitude + " " + courses[3].gps[i].latitude)
-    //     document.writeln()
-    // }
+    const end = coordinates.at(-1);
+
+    const [startLongitude, startLatitude] = start
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [startLongitude, startLatitude],
+        zoom: 14
+    });
+
+    map.loadImage('../public/car.png', (error, image) => {
+        if (error) throw error;
+        map.addImage('pngcar', image);
+    });
+
+    const point = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [startLongitude, startLatitude]
+                }
+            }
+        ]
+    };
+
+    let courseCoordinates = selectedCourse.gps.map(it => [it.longitude, it.latitude])
+    courseCoordinates.unshift([startLongitude, startLatitude])
+    courseCoordinates.push([end[0], end[1]])
+    console.log(courseCoordinates)
+
+    let route = createRoute(courseCoordinates);
+
+    const lineDistance = turf.length(route.features[0]);
+
+    const arc = [];
+
+    // Number of steps to use in the arc and animation, more steps means
+    // a smoother arc and animation, but too many steps will result in a
+    // low frame rate
+    const steps = 500;
+
+    // Draw an arc between the `origin` & `destination` of the two points
+    for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+        const segment = turf.along(route.features[0], i);
+        arc.push(segment.geometry.coordinates);
+    }
+
+    // Update the route with calculated arc coordinates
+    route.features[0].geometry.coordinates = arc;
+
+    let counter = 0;
+    let carRoute = createCarRoute(route)
+
+    map.on('load', () => {
+        map.addSource('route', carRoute)
+
+        map.addSource('point', {
+            'type': 'geojson',
+            'data': point
+        });
+
+        map.addLayer({
+            'id': 'route',
+            'source': 'route',
+            'type': 'line',
+            'paint': {
+                'line-width': 3,
+                'line-color': '#F7455D'
+            }
+        });
+
+        map.addLayer({
+            'id': 'point',
+            'source': 'point',
+            'type': 'symbol',
+            'layout': {
+                // This icon is a part of the Mapbox Streets style.
+                // To view all images available in a Mapbox style, open
+                // the style in Mapbox Studio and click the "Images" tab.
+                // To add a new image to the style at runtime see
+                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
+                'icon-image': 'pngcar',
+                'icon-size': 0.4,
+                'icon-rotate': ['get', 'bearing'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        function animate() {
+            const start =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter - 1 : counter
+                ];
+            const end =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter : counter + 1
+                ];
+            if (!start || !end) return;
+
+            // Update point geometry to a new position based on counter denoting
+            // the index to access the arc
+            point.features[0].geometry.coordinates =
+                route.features[0].geometry.coordinates[counter];
+
+            // Calculate the bearing to ensure the icon is rotated to match the route arc
+            // The bearing is calculated between the current point and the next point, except
+            // at the end of the arc, which uses the previous point and the current point
+            point.features[0].properties.bearing = turf.bearing(
+                turf.point(start),
+                turf.point(end)
+            );
+
+            // Update the source with this new data
+            map.getSource('point').setData(point);
+
+            // Request the next frame of animation as long as the end has not been reached
+            if (counter < steps) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        document.getElementById('replay').addEventListener('click', () => {
+            // Set the coordinates of the original point back to origin
+            point.features[0].geometry.coordinates = courseCoordinates[0];
+
+            // Update the source layer
+            map.getSource('point').setData(point);
+
+            // Reset the counter
+            counter = 0;
+
+            // Restart the animation
+            animate(counter);
+        });
+
+        // Start the animation
+        animate(counter);
+    });
 }
 
 function clicked5() {
+    let selectedCourse = courses[4]
 
-    origin = [courses[4].stop_points.coordinates[0][0], courses[4].stop_points.coordinates[0][1]];
-    destination = [courses[4].stop_points.coordinates[courses[4].stops.valueOf() - 1][0], courses[4].stop_points.coordinates[courses[4].stops.valueOf() - 1][1]];
+    let {
+        stop_points: {
+            coordinates
+        }
+    } = selectedCourse
 
-    document.write(origin)
-    document.write(destination)
+    const start = coordinates[0];
 
-    // for (let i = 0; i < courses[4].gps_count; i++) {
-    //     document.writeln(courses[4].gps[i].longitude + " " + courses[4].gps[i].latitude)
-    //     document.writeln()
-    // }
+    const end = coordinates.at(-1);
+
+    const [startLongitude, startLatitude] = start
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [startLongitude, startLatitude],
+        zoom: 14
+    });
+
+    map.loadImage('../public/car.png', (error, image) => {
+        if (error) throw error;
+        map.addImage('pngcar', image);
+    });
+
+    const point = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [startLongitude, startLatitude]
+                }
+            }
+        ]
+    };
+
+    let courseCoordinates = selectedCourse.gps.map(it => [it.longitude, it.latitude])
+    courseCoordinates.unshift([startLongitude, startLatitude])
+    courseCoordinates.push([end[0], end[1]])
+    console.log(courseCoordinates)
+
+    let route = createRoute(courseCoordinates);
+
+    const lineDistance = turf.length(route.features[0]);
+
+    const arc = [];
+
+    // Number of steps to use in the arc and animation, more steps means
+    // a smoother arc and animation, but too many steps will result in a
+    // low frame rate
+    const steps = 100;
+
+    // Draw an arc between the `origin` & `destination` of the two points
+    for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+        const segment = turf.along(route.features[0], i);
+        arc.push(segment.geometry.coordinates);
+    }
+
+    // Update the route with calculated arc coordinates
+    route.features[0].geometry.coordinates = arc;
+
+    let counter = 0;
+    let carRoute = createCarRoute(route)
+
+    map.on('load', () => {
+        map.addSource('route', carRoute)
+
+        map.addSource('point', {
+            'type': 'geojson',
+            'data': point
+        });
+
+        map.addLayer({
+            'id': 'route',
+            'source': 'route',
+            'type': 'line',
+            'paint': {
+                'line-width': 3,
+                'line-color': '#F7455D'
+            }
+        });
+
+        map.addLayer({
+            'id': 'point',
+            'source': 'point',
+            'type': 'symbol',
+            'layout': {
+                // This icon is a part of the Mapbox Streets style.
+                // To view all images available in a Mapbox style, open
+                // the style in Mapbox Studio and click the "Images" tab.
+                // To add a new image to the style at runtime see
+                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
+                'icon-image': 'pngcar',
+                'icon-size': 0.4,
+                'icon-rotate': ['get', 'bearing'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+            }
+        });
+
+        function animate() {
+            const start =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter - 1 : counter
+                ];
+            const end =
+                route.features[0].geometry.coordinates[
+                counter >= steps ? counter : counter + 1
+                ];
+            if (!start || !end) return;
+
+            // Update point geometry to a new position based on counter denoting
+            // the index to access the arc
+            point.features[0].geometry.coordinates =
+                route.features[0].geometry.coordinates[counter];
+
+            // Calculate the bearing to ensure the icon is rotated to match the route arc
+            // The bearing is calculated between the current point and the next point, except
+            // at the end of the arc, which uses the previous point and the current point
+            point.features[0].properties.bearing = turf.bearing(
+                turf.point(start),
+                turf.point(end)
+            );
+
+            // Update the source with this new data
+            map.getSource('point').setData(point);
+
+            // Request the next frame of animation as long as the end has not been reached
+            if (counter < steps) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        document.getElementById('replay').addEventListener('click', () => {
+            // Set the coordinates of the original point back to origin
+            point.features[0].geometry.coordinates = courseCoordinates[0];
+
+            // Update the source layer
+            map.getSource('point').setData(point);
+
+            // Reset the counter
+            counter = 0;
+
+            // Restart the animation
+            animate(counter);
+        });
+
+        // Start the animation
+        animate(counter);
+    });
 }
 
-// routeOne.on('click', clicked1)
-const route = document.getElementById("route-2") 
-route.onclick = clicked2
+
+let route1 = document.getElementById("rota1")
+route1.onclick = clicked1
+let route2 = document.getElementById("rota2")
+route2.onclick = clicked2
+let route3 = document.getElementById("rota3") 
+route3.onclick = clicked3
+let route4 = document.getElementById("rota4") 
+route4.onclick = clicked4
+let route5 = document.getElementById("rota5") 
+route5.onclick = clicked5
