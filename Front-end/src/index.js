@@ -27,6 +27,14 @@ function createRoute(coordinates) {
     }
 }
 
+let map = new mapboxgl.Map({
+    container: 'map', // container ID
+    // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+    style: 'mapbox://styles/mapbox/streets-v12', // style URL
+    center: [-46.65, -23.55], // starting position [lng, lat]
+    zoom: 10 // starting zoom
+    });
+
 function clicked1() {
     let x = 0
     currentRoute(x)
@@ -67,7 +75,7 @@ function currentRoute(x){
 
     const [startLongitude, startLatitude] = start
 
-    const map = new mapboxgl.Map({
+    map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [startLongitude, startLatitude],
