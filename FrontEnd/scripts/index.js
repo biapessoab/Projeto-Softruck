@@ -35,7 +35,30 @@ let map = new mapboxgl.Map({
     zoom: 10 // starting zoom
     });
 
+function clicked1() {
+    let x = 0
+    currentRoute(x)
+}
 
+function clicked2() {
+    let x = 1
+    currentRoute(x)
+}
+
+function clicked3() {
+    let x = 2
+    currentRoute(x)
+}
+
+function clicked4() {
+    let x = 3
+    currentRoute(x)
+}
+
+function clicked5() {
+    let x = 4
+    currentRoute(x)
+}
 
 function currentRoute(x){
     let selectedCourse = courses[x]
@@ -198,17 +221,14 @@ function currentRoute(x){
 }
 
 
-function changeRoute(index) {
-    currentRoute(index - 1)
-}
+let route1 = document.getElementById("route1")
+route1.onclick = clicked1
+let route2 = document.getElementById("route2")
+route2.onclick = clicked2
+let route3 = document.getElementById("route3") 
+route3.onclick = clicked3
+let route4 = document.getElementById("route4") 
+route4.onclick = clicked4
+let route5 = document.getElementById("route5") 
+route5.onclick = clicked5
 
-const route1 = document.getElementById("route1")
-route1.onclick = changeRoute(1)
-const route2 = document.getElementById("route2")
-route2.onclick = changeRoute(2)
-const route3 = document.getElementById("route3") 
-route3.onclick = changeRoute(3)
-const route4 = document.getElementById("route4") 
-route4.onclick = changeRoute(4)
-const route5 = document.getElementById("route5") 
-route5.onclick = changeRoute(5)
