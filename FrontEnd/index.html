@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8">
+  <title>Projeto Softruck</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.css" rel="stylesheet">
+  <script type="module" src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
+  <link rel="stylesheet" href="./styles/style.css" />
+</head>
+
+<body>
+
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  
+  <div id="map"></div>
+
+  <div class="overlay" id="replay">
+    <button id="replay">Replay</button>
+  </div>
+
+  <div class="overlay" id="routes">
+    <ul id="buttons">
+      <li id="route1" class="button" onclick="clicked1()">Rota 1</li>
+      <li id="route2" class="button" onclick="clicked2()">Rota 2</li>
+      <li id="route3" class="button" onclick="clicked3()">Rota 3</li>
+      <li id="route4" class="button" onclick="clicked4()">Rota 4</li>
+      <li id="route5" class="button" onclick="clicked5()">Rota 5</li>
+    </ul>
+  </div>
+
+
+  <script type="module" src="./scripts/index.js"></script>
+</body>
+
+</html>
